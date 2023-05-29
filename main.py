@@ -183,3 +183,15 @@ def simulate(text, interactions):
 # run("y0001111111000001111100000spbbbbbbbdddtz")
 # run("y0110101011111010001111101010101011101010101001110100010110110101spbababaaccddcctz")
 assert simulate("I love my life", interactions={"life": "lie", "my lie": "his lie", "love his": "love their"}) == 'I love their lie'
+assert simulate("+0100101101=", interactions={
+    '+00': '0+',
+    '+01': '1+',
+    '+10': '1+',
+    '+11': '1p',
+    'p00': '1+',
+    'p01': '0p',
+    'p10': '0p',
+    'p11': '1p',
+    '+=': '',
+    'p=': '1',
+}) == '101101'
