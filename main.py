@@ -92,23 +92,31 @@ INTERACTIONS = {
 }
 
 INTERACTIONS_RE = re.compile((r'|').join(r'(?:' + re.escape(s) + r')' for s in INTERACTIONS))
+
 def step(text):
     return INTERACTIONS_RE.sub(lambda m: INTERACTIONS[m.group()], text)
+
 def prnt(text):
     # print(f'\r\x1b[2K{text}', end='')
     print(text)
+
 def run(text):
     prnt(text)
-    history = {text}
+    last = text
+    count = 0
+    epoch = 1
     while True:
         text = step(text)
-        prnt(text)
-        if text in history:
+        if text == last:
             break
-        history.add(text)
+        count += 1
+        if count == epoch:
+            last = text
+            epoch <<= 1
     text = death(text)
     print()
     return text
+
 def death(text):
     assert text.endswith('z')
     text = text[:-1]
@@ -122,12 +130,60 @@ def death(text):
     assert text.startswith('y')
     text = text[1:]
     text = re.sub(r'[abcdSt]', '', text)
+    assert not re.search(r'[efpP]', text)
+    text = text.replace('A', '0')
+    text = text.replace('B', '1')
     prnt(text)
     return text
+
+def simulate(text, rules):
+    start = '1000'
+    marker = ''
+    alphabet = sorted(set(text) | {c for x, y in rules.items() for c in x + y} | {marker})
+    idx = 0
+    alpha_to_chain = {}
+    for a in alphabet:
+        while True:
+            candidate = f'{idx:b}'
+            idx += 1
+            if start not in candidate:
+                alpha_to_chain[a] = candidate
+                break
+    bitlen = max(len(chain) for chain in alpha_to_chain.values())
+    codelen = len(start) + bitlen
+    alpha_to_chain = {x: start + (bitlen - len(y)) * "0" + y for x, y in alpha_to_chain.items()}
+    phrase_to_chain = lambda phrase: ''.join(alpha_to_chain[c] for c in phrase)
+    marker_chain = alpha_to_chain[marker]
+    input_text = marker_chain + phrase_to_chain(text)
+    rule_to_chain = lambda x, y: ('sp' +
+        phrase_to_chain(x).replace('0', 'a').replace('1', 'b') +
+        phrase_to_chain(y).replace('0', 'c').replace('1', 'd') +
+        't'
+    )
+    whole_text = 'y' + input_text + ''.join(rule_to_chain(x, y) for x, y in rules.items()) + 'z'
+    result = run(whole_text)
+    pos = result.find(start)
+    assert pos != -1
+    result = result[pos:] + result[:pos]
+    pos = result.find(marker_chain)
+    assert pos != -1
+    result = result[pos + len(marker_chain):] + result[:pos]
+    chain_to_alpha = {y: x for x, y in alpha_to_chain.items()}
+    assert (len(result) % codelen) == 0
+    pos = 0
+    output = []
+    while pos < len(result):
+        output.append(chain_to_alpha[result[pos:pos + codelen]])
+        pos += codelen
+    output = ''.join(output)
+    print(output)
+    return output
+
+
 """
 result = run("y0110101011111010001111101010101011101010101001110100010110110101spbababaaccddcctz")
 print("011010101111101000111110101010101110100011001110100010110110101")
 """
-run("y0001111111000001111100000spbbbbbbbdddtz")
+# run("y0001111111000001111100000spbbbbbbbdddtz")
 # run("y0110101011111010001111101010101011101010101001110100010110110101spbababaaccddcctz")
-
+simulate("I love my life", {"life": "wife"})
