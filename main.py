@@ -98,7 +98,8 @@ def step(text):
 
 def prnt(text):
     # print(f'\r\x1b[2K{text}', end='')
-    print(text)
+    # print(text)
+    pass
 
 def run(text):
     prnt(text)
@@ -114,7 +115,6 @@ def run(text):
             last = text
             epoch <<= 1
     text = death(text)
-    print()
     return text
 
 def death(text):
@@ -136,10 +136,10 @@ def death(text):
     prnt(text)
     return text
 
-def simulate(text, rules):
+def simulate(text, interactions):
     start = '1000'
     marker = ''
-    alphabet = sorted(set(text) | {c for x, y in rules.items() for c in x + y} | {marker})
+    alphabet = sorted(set(text) | {c for x, y in interactions.items() for c in x + y} | {marker})
     idx = 0
     alpha_to_chain = {}
     for a in alphabet:
@@ -155,12 +155,12 @@ def simulate(text, rules):
     phrase_to_chain = lambda phrase: ''.join(alpha_to_chain[c] for c in phrase)
     marker_chain = alpha_to_chain[marker]
     input_text = marker_chain + phrase_to_chain(text)
-    rule_to_chain = lambda x, y: ('sp' +
+    interaction_to_chain = lambda x, y: ('sp' +
         phrase_to_chain(x).replace('0', 'a').replace('1', 'b') +
         phrase_to_chain(y).replace('0', 'c').replace('1', 'd') +
         't'
     )
-    whole_text = 'y' + input_text + ''.join(rule_to_chain(x, y) for x, y in rules.items()) + 'z'
+    whole_text = 'y' + input_text + ''.join(interaction_to_chain(x, y) for x, y in interactions.items()) + 'z'
     result = run(whole_text)
     pos = result.find(start)
     assert pos != -1
@@ -176,14 +176,10 @@ def simulate(text, rules):
         output.append(chain_to_alpha[result[pos:pos + codelen]])
         pos += codelen
     output = ''.join(output)
-    print(output)
+    prnt(output)
     return output
 
 
-"""
-result = run("y0110101011111010001111101010101011101010101001110100010110110101spbababaaccddcctz")
-print("011010101111101000111110101010101110100011001110100010110110101")
-"""
 # run("y0001111111000001111100000spbbbbbbbdddtz")
 # run("y0110101011111010001111101010101011101010101001110100010110110101spbababaaccddcctz")
-simulate("I love my life", {"life": "wife"})
+assert simulate("I love my life", interactions={"life": "lie", "my lie": "his lie", "love his": "love their"}) == 'I love their lie'
